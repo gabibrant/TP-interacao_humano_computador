@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+  <title>TP2 - Visualização de dados 2016/1</title>
+  <link href='https://fonts.googleapis.com/css?family=Raleway:400,500,600,300' rel='stylesheet' type='text/css'>
+  
+</head>
+
+<style>
+
+body{
+  background: url('redox_01.png') repeat center;
+}
+
+.bar {
+  fill: rgb(137, 194, 196);
+}
+
+.bar:hover {
+  fill:   rgb(165, 185, 201);
+}
+
+.axis {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.line {
+  fill: none;
+  stroke: rgb(131, 136, 138);
+  stroke-width: 2.5px;
+  border-radius: 10px;
+}
+
+.x.axis path {
+  display: none;
+}
+#chart{
+  width: 960px;
+  margin: auto;
+  margin-bottom: 50px;
+}
+
+h1, h4, h3{
+  text-align: center;
+  font-family: Raleway;
+  width: 70%;
+  margin: auto;
+}
+
+h1{
+  margin-top: 40px;
+  color: #41807b;
+}
+
+h4{
+  margin-top: 20px;
+  color: #a6a6a6;
+  text-align: right;
+  width: 95%;
+}
+h3{
+   margin-top: 20px;
+   margin-bottom: 40px;
+  color: #808080;
+}
+
+.d3-tip {
+  line-height: 1;
+  font-weight: light;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border-radius: 2px;
+  font-family: Raleway;
+}
+
+/* Creates a small triangle extender for the tooltip */
+.d3-tip:after {
+  box-sizing: border-box;
+  display: inline;
+  font-size: 10px;
+  width: 100%;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.8);
+  content: "\25BC";
+  position: absolute;
+  text-align: center;
+}
+
+/* Style northward tooltips differently */
+.d3-tip.n:after {
+  margin: -1px 0 0 0;
+  top: 100%;
+  left: 0;
+}
+
+</style>
+<body>
+  <h1>Number of employees and average wage per year</h1>
+  <h3>Data from DataViva about Trade Industry in Belo Horizonte</h3>
+  
+  <div id="chart"></div>
+  <h4>Developed by Carolina S., Gabriela B., Julio G., Thiago O. for course Visualização de Dados 2016/01</h4>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script type="text/javascript" src="../d3tip.js"></script>
+<script>
+
+var margin = {top: 20, right: 100, bottom: 30, left: 100},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var x = d3.scale.ordinal()
+    .rangeRoundBands([0, width], .1);
+
+var y0 = d3.scale.linear()
+    .range([height, 0]);
+
+var y1 = d3.scale.linear()
+    .range([height, 0]);
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom");
+
+var yAxisLeft = d3.svg.axis()
+    .scale(y0)
+    .orient("left")
+    .ticks(7);
+
+var yAxisRight = d3.svg.axis()
+    .scale(y1)
+    .orient("right")
+    .ticks(7);
+
+//posicao x e y dos ptos da linha
+var line = d3.svg.line()
+    .x(function(d) { return x(d.year) + (x.rangeBand()-5)/2; }) //essa ultima parte é pra ficar no centro da barra
+    .y(function(d) { return y1(d.wage); });
+
+var tip = d3.tip()
+  .attr('class', 'd3-tip')
+  .offset([-10, 0])
+  .html(function(d) {
+    return "<strong>Year:</strong> <span style='color:rgb(137, 194, 196);'>" + d.year + "</span><br /><strong>Number of employees:</strong> <span style='color:rgb(137, 194, 196);'>" + d.employees + "</span><br /><strong>Average Wage:</strong> <span style='color:rgb(137, 194, 196);'>" + d.wage + "</span>";
+  })
+
+var svg = d3.select("#chart").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+svg.call(tip);
+d3.tsv("data1.tsv", type, function(error, data) {
+  if (error) throw error;
+
+  x.domain(data.map(function(d) { return d.year; }));
+  y0.domain([0, d3.max(data, function(d) { return d.employees; })]);
+  y1.domain([0, d3.max(data, function(d) { return d.wage; })]);
+
+  //eixo X
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis);
+
+  // eixo Y da esquerda
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxisLeft)
+    .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("Number of Employees");
+
+
+  //eixo Y da direita
+  svg.append("g")
+      .attr("class", "y axis")
+      .attr("transform", "translate(" + width + " ,0)")
+      .call(yAxisRight)
+    .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("x", -20)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("Average Wage");
+     
+
+  //barras
+  svg.selectAll(".bar")
+      .data(data)
+    .enter().append("rect")
+      .attr("class", "bar")
+      .attr("x", function(d) { return x(d.year) + 5; })
+      .attr("width", x.rangeBand()-10)
+      .attr("y", function(d) { return y0(d.employees); })
+      .attr("height", function(d) { return height - y0(d.employees); })
+      .on('mouseover', tip.show)
+      .on('mouseout', tip.hide);
+
+  //linha
+  svg.append("path")
+      .datum(data)
+      .attr("class", "line")
+      .style("stroke", "#cd7568")
+      .attr("d", line)
+      .style("stroke-width", "5px");
+});
+
+function type(d) {
+  d.employees = +d.employees;
+  d.wage = +d.wage;
+  return d;
+}
+
+</script>
