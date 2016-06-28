@@ -1,8 +1,0 @@
-{
- "document" : "dadosTreeMap/dados2002.csv",
- "separator": ",",
- "hierarchy": [ "color"],
- "values":    [ "num_emp"],
- "label":     "name",
- "tooltip":   "name"
-}
