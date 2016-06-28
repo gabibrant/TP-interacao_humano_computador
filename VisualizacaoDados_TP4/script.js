@@ -1,4 +1,4 @@
-$( document ).ready(function() {
+$( document ).ready(function(){
 
   $('.number1').each(function () {
     $(this).prop('Counter',0).animate({
@@ -126,7 +126,7 @@ dispatch.on("load.menu", function(stateById) {
 dispatch.on("load.bar", function(stateById) {
   var margin = {top: 20, right: 20, bottom: 30, left: 40},
       width = 80 - margin.left - margin.right,
-      height = 460 - margin.top - margin.bottom;
+      height = 400 - margin.top - margin.bottom;
 
   var y = d3.scale.linear()
       .domain([0, d3.max(stateById.values(), function(d) { return d.total; })])
@@ -148,11 +148,20 @@ dispatch.on("load.bar", function(stateById) {
       .attr("class", "y axis")
       .call(yAxis);
 
+  var tip2 = d3.tip()
+    .attr('class', 'd3-tip')
+    .offset([0, 0])
+    .html(function(d) {
+      return "Total average wage in the year";
+  });
+
   var rect = svg.append("rect")
       .attr("x", 4)
       .attr("width", width - 4)
       .attr("y", height)
       .attr("height", 0)
+      .on('mouseover', tip2.show)
+      .on('mouseout', tip2.hide) 
       .style("fill", "#aaa");
 
   dispatch.on("statechange.bar", function(d) {
@@ -160,12 +169,14 @@ dispatch.on("load.bar", function(stateById) {
         .attr("y", y(d.total))
         .attr("height", y(0) - y(d.total));
   });
+
+  svg.call(tip2);
 });
 
 // Donut Chart
 dispatch.on("load.pie", function(stateById) {
   var width = $("#chart1").width() - 100,
-      height = 460,
+      height = 400,
       radius = Math.min(width, height) / 2;
 
   
@@ -220,10 +231,10 @@ function type(d) {
   d.total = d3.sum(groups, function(k) { return d[k] = +d[k]; });
   return d;
 }
-var diameter = $("#chart_legend").width();
+var largura_legenda = $("#chart_legend").width();
 var svg = d3.select("#chart_legend").append("svg")
-      .attr("width", diameter)
-      .attr("height", 480)
+      .attr("width", largura_legenda)
+      .attr("height", 100)
       .attr("class", "legenda");
 
 var desl = 0;
@@ -244,10 +255,10 @@ for (g in groups3){
           .attr("r", 7)
           .attr("x", 60)
           .attr("y", 0)
-          .attr("transform", "translate(" + diameter/3 + "," + (2*(g) + 5) + ")")
+          .attr("transform", "translate(" + (largura_legenda/2 + 20) + "," + ((g-4.6)*20) + ")")
           .style("fill", color(groups3[g].name));
     svg.append("text")
-          .attr("transform", "translate(" + (diameter/3 + 10) + "," + 2*(g+8) + ")")
+          .attr("transform", "translate(" + (largura_legenda/2 + 30) + "," + ((g-4.3)*20) + ")")
           .style("fill", color(groups3[g].name))
           .text(groups3[g].name);
   }
@@ -260,12 +271,12 @@ for (g in groups3){
 
   var bubble = d3.layout.pack()
       .sort(null)
-      .size([diameter, 480])
+      .size([diameter, 585])
       .padding(1.5);
 
   var svg = d3.select("#chart2").append("svg")
       .attr("width", diameter)
-      .attr("height", 480)
+      .attr("height", 585)
       .attr("class", "bubble");
 
   d3.json("bubble.json", function(error, root) {
@@ -318,5 +329,256 @@ for (g in groups3){
 
   d3.select(self.frameElement).style("height", diameter + "px");
 
+//Line chart
 
+var margin = {top: 20, right: 50, bottom: 50, left: 100},
+    width = $("#chart3").width() - margin.left - margin.right,
+    height = 350 - margin.top - margin.bottom;
+
+// Parse the date / time
+var parseDate = d3.time.format("%Y").parse;
+
+// Set the ranges
+var x = d3.time.scale().range([0, width]);
+var y = d3.scale.linear().range([height, 0]);
+
+// Define the axes
+var xAxis = d3.svg.axis().scale(x)
+    .orient("bottom").ticks(5);
+
+var yAxis = d3.svg.axis().scale(y)
+    .orient("left").ticks(5);
+
+// Define the line
+var valueline = d3.svg.line()
+    .x(function(d) { return x(d.date); })
+    .y(function(d) { return y(d.wage); })
+    .interpolate("linear");
+    
+// Adds the svg canvas
+var svg_line = d3.select("#chart3")
+    .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+        .attr("transform", 
+              "translate(" + margin.left + "," + margin.top + ")");
+
+// Get the data
+d3.csv("line.csv", function(error, data) {
+    data.forEach(function(d) {
+        d.date = parseDate(d.date);
+        d.wage = +d.wage;
+    });
+
+    // Scale the range of the data
+    x.domain(d3.extent(data, function(d) { return d.date; }));
+    y.domain([0, d3.max(data, function(d) { return d.wage; })]);
+
+
+    // Add the valueline path.
+    svg_line.append("path")
+        .attr("class", "line")
+        .style("fill", "none")
+        .style("stroke", color)
+        .style('stroke-width',3)
+        .attr("d", valueline(data));
+
+
+
+    // Add the X Axis
+    svg_line.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .style({ 'stroke': 'black', 'fill': 'none', 'stroke-width': '1px'})
+        .call(xAxis)
+        .selectAll("text")
+          .style({ 'stroke': 'none', 'fill': 'black', 'stroke-width': '0px'});
+
+    // Add the Y Axis
+    svg_line.append("g")
+        .attr("class", "y axis")
+        .style({ 'stroke': 'black', 'fill': 'none', 'stroke-width': '1px'})
+        .call(yAxis)
+        .selectAll("text")
+          .style({ 'stroke': 'none', 'fill': 'black', 'stroke-width': '0px'});
+    
+
+  });
+
+
+//Chart  4 - TreeMap
+
+var config = [];
+$.ajax({
+  type: 'GET',
+  url: "config.json",
+  dataType: 'json',
+  success: function(data) { config = data;},
+  async: false
+});
+
+var w = $("#chart4").width() - 80,
+    h = 800 - 180,
+    x = d3.scale.linear().range([0, w]),
+    y = d3.scale.linear().range([0, h]),
+    color = d3.scale.category10(),
+    root,
+    node;
+
+// Closure to access members defined as keys
+function makeKeyFunction(keyName) {
+  var localKeyName = keyName;
+  function key(d) {
+    return d[localKeyName];
+  }
+  return key;
+}
+
+
+
+// Give a key used to give the color (same key = same color)
+function ColorKey(d) {
+  var key = "";
+  for (i in config.hierarchy) {
+    key += "." + d[config.hierarchy[i]]
+  }
+  return key;
+}
+
+// Node to zoom on when click occurs
+function selectNode(d) {
+  return (node == d.parent ? root : d.parent);
+}
+
+updateTreeMap();
+
+function updateTreeMap() {
+
+var treemap = d3.layout.treemap()
+    .round(false)
+    .size([w, h])
+    .sticky(true)
+	.children(function(d) { return d.values; })
+    .value(makeKeyFunction(config.values[0]));
+
+var svg = d3.select("#chart4")
+    .attr("class", "chart")
+    .style("width", w + "px")
+    .style("height", h + "px")
+  .append("svg:svg")
+    .attr("width", w)
+    .attr("height", h)
+  .append("svg:g")
+    .attr("transform", "translate(.5,.5)");
+
+// Zoom from a state to another
+function zoom(d) {
+  var kx = w / d.dx, ky = h / d.dy;
+  x.domain([d.x, d.x + d.dx]);
+  y.domain([d.y, d.y + d.dy]);
+
+  var t = svg.selectAll("g.cell").transition()
+      .duration(d3.event.altKey ? 7500 : 750)
+      .attr("transform", function(d) { return "translate(" + x(d.x) + "," + y(d.y) + ")"; });
+
+  t.select("rect")
+      .attr("width", function(d) { return kx * d.dx - 1; })
+      .attr("height", function(d) { return ky * d.dy - 1; })
+
+  t.select("text")
+      .attr("x", function(d) { return kx * d.dx / 2; })
+      .attr("y", function(d) { return ky * d.dy / 2; })
+      .style("opacity", function(d) { return kx * d.dx > d.w ? 1 : 0; });
+
+  node = d;
+  d3.event.stopPropagation();
+  
+  if (node == root) {
+    document.getElementById("header").innerHTML = "top level";
+  }
+  else {
+    document.getElementById("header").innerHTML = config.hierarchy[0] + ": " + node.key;
+  }
+}
+
+  var parser = d3.dsv(config.separator, "text/plain");
+  parser(config.document, function(data) {
+    // Create a nest objet to convert flat data to a tree structure 
+    var nested = d3.nest();
+
+    // Add the keys to construct the hierarchy
+    for (i in config.hierarchy) {
+      var key = config.hierarchy[i]
+      nested.key(makeKeyFunction(key)).sortKeys(d3.ascending);
+    }
+  
+    // Build the tree structure
+    node = root = {
+      "name": "rootnode",
+      "values": nested.entries(data)
+    };
+
+    // Create all viewable nodes (in this case: leafs)
+    var nodes = treemap.nodes(root)
+        .filter(function(d) { return !d.children; });
+
+    var cell = svg.selectAll("g")
+        .data(nodes)
+      .enter().append("svg:g")
+        .attr("class", "cell")
+        .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
+        .attr("title", makeKeyFunction(config.tooltip))
+        .on("click", function(d) { return zoom(selectNode(d)); });
+
+    cell.append("svg:rect")
+        .attr("width", function(d) { return d.dx - 1; })
+        .attr("height", function(d) { return d.dy - 1; })
+        .style("fill", function(d) { return color(ColorKey(d)); });
+
+    cell.append("svg:text")
+        .attr("x", function(d) { return d.dx / 2; })
+        .attr("y", function(d) { return d.dy / 2; })
+        .attr("dy", ".35em")
+        .attr("text-anchor", "middle")
+        .text(makeKeyFunction(config.label))
+        .style("opacity", function(d) { d.w = this.getComputedTextLength(); return d.dx > d.w ? 1 : 0; });
+
+    // Only if a tooltip column is specified
+    if (config.tooltip) {
+      cell.append("svg:title")
+        .text(makeKeyFunction(config.tooltip));
+    }
+/*
+    // On value source change
+    d3.select("select").on("change", function() {
+      treemap.value(makeKeyFunction(this.value)).nodes(root);
+      zoom(node);
+    }); */
+
+  });
+}
+
+// handle on click event
+d3.select('#opts')
+  .on('change', function() {
+    var index =  eval(d3.select(this).property('value'));
+    if(index=="2002") config.document="dadosTreeMap/dados2002.csv";
+    if(index=="2003") config.document="dadosTreeMap/dados2003.csv";
+    if(index=="2004") config.document="dadosTreeMap/dados2004.csv";
+    if(index=="2005") config.document="dadosTreeMap/dados2005.csv";
+    if(index=="2006") config.document="dadosTreeMap/dados2006.csv";
+    if(index=="2007") config.document="dadosTreeMap/dados2007.csv";
+    if(index=="2008") config.document="dadosTreeMap/dados2008.csv";
+    if(index=="2009") config.document="dadosTreeMap/dados2009.csv";
+    if(index=="2010") config.document="dadosTreeMap/dados2010.csv";
+    if(index=="2011") config.document="dadosTreeMap/dados2011.csv";
+    if(index=="2012") config.document="dadosTreeMap/dados2012.csv";
+    if(index=="2013") config.document="dadosTreeMap/dados2013.csv";
+    if(index=="2014") config.document="dadosTreeMap/dados2014.csv";
+
+    d3.select("#chart4").select("svg").remove();
+    updateTreeMap();
+});
+	
 });
